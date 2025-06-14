@@ -26,7 +26,8 @@
     "react-native-screens": "~4.11.1",
     "react-native-svg": "^15.12.0",
     "react-native-vector-icons": "^10.2.0",
-    "socket.io-client": "^4.8.1"
+    "socket.io-client": "^4.8.1",
+    "usermanagementsystem": "file:.."
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"

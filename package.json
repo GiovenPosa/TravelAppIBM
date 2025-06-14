@@ -14,5 +14,8 @@
   "type": "commonjs",
   "devDependencies": {
     "concurrently": "^9.1.2"
+  },
+  "dependencies": {
+    "@expo/vector-icons": "^14.1.0"
   }
 }
