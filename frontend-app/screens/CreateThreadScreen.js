@@ -13,7 +13,6 @@ const CreateThreadScreen = ({ navigation }) => {
     const fetchUsername = async () => {
       try {
         const token = await AsyncStorage.getItem('token');
-        console.log('Token from AsyncStorage:', token); // Debug log
         if (token) {
           try {
             const base64Url = token.split('.')[1];
@@ -27,10 +26,18 @@ const CreateThreadScreen = ({ navigation }) => {
                 .join('')
             );
             const payload = JSON.parse(jsonPayload);
-            console.log('Decoded JWT:', payload); // Debug log
-            setUsername((payload.firstName || '') + ' ' + (payload.lastName || ''));
+            // Fetch user info from backend using userId
+            const response = await fetch(`${API_BASE_URL}/api/users/${payload.userId}`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            const data = await response.json();
+            if (response.ok && data.user) {
+              setUsername((data.user.firstName || '') + ' ' + (data.user.lastName || ''));
+            } else {
+              setUsername('User');
+            }
           } catch (decodeErr) {
-            console.log('Error decoding JWT:', decodeErr);
+            console.log('Error decoding JWT or fetching user:', decodeErr);
             setUsername('User');
           }
         }
