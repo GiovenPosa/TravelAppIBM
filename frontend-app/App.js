@@ -11,6 +11,7 @@ import UserProfileScreen from './screens/UserProfileScreen';
 import ChatScreen from './screens/ChatScreen';
 import ControlPanelScreen from './screens/ControlPanelScreen';
 import BookingsScreen from './screens/BookingsScreen';
+import CreateThreadScreen from './screens/CreateThreadScreen';
 import { Ionicons, MaterialIcons, FontAwesome } from '@expo/vector-icons';
 
 const Stack = createNativeStackNavigator();
@@ -55,6 +56,7 @@ export default function App() {
         <Stack.Screen name="Main" component={MainAppTabs} options={{ headerShown: false }}/>
         <Stack.Screen name="UserProfile" component={UserProfileScreen} />
         <Stack.Screen name="Chat" component={ChatScreen} />
+        <Stack.Screen name="CreateThread" component={CreateThreadScreen} options={{ headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

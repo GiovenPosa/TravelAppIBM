@@ -7,7 +7,7 @@ import { fetchUserProfile } from '../utils/ProfileInfo';
 import AddPost from '../components/AddPost';
 import PostList from '../components/PostList';
 
-const ProfileScreen = () => {
+const ProfileScreen = ({ navigation }) => {
   const [userInfo, setUserInfo] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -28,7 +28,7 @@ const ProfileScreen = () => {
   );
 
   return (
-    <View style={[styles.container, { paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight : 30 }]}>
+    <View style={[styles.container, { paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight : 40 }]}>
       <StatusBar style="dark" />
       <View style={styles.topBar}>
         <View style={styles.logoContainer}>
@@ -46,7 +46,7 @@ const ProfileScreen = () => {
             </TouchableOpacity>
             {showDropdown && (
               <View style={[styles.dropdown, { top: 38, right: -10 }]}>
-                <TouchableOpacity style={styles.dropdownItem}>
+                <TouchableOpacity style={styles.dropdownItem} onPress={() => { setShowDropdown(false); navigation.navigate('CreateThread'); }}>
                   <MaterialIcons name="forum" size={22} color="#222" style={{ marginRight: 10 }} />
                   <Text>Thread</Text>
                 </TouchableOpacity>
@@ -86,7 +86,7 @@ const ProfileScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { padding: 20, flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: '#fff' },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: 10, borderBottomWidth: 1, borderColor: '#eee' },
   logoContainer: { flexDirection: 'row', alignItems: 'center' },
   logo: { width: 50, height: 40, resizeMode: 'contain', marginRight: 8 },

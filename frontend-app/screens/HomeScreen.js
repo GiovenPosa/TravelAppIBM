@@ -4,7 +4,7 @@ import { Ionicons, MaterialIcons, FontAwesome } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import FeedList from '../components/FeedList';
 
-const HomeScreen = () => {
+const HomeScreen = ({ navigation }) => {
   const [refreshKey, setRefreshKey ] = useState(0);
   const [showDropdown, setShowDropdown] = useState(false);
 
@@ -30,7 +30,7 @@ const HomeScreen = () => {
             </TouchableOpacity>
             {showDropdown && (
               <View style={[styles.dropdown, { top: 38, right: -10 }]}>
-                <TouchableOpacity style={styles.dropdownItem}>
+                <TouchableOpacity style={styles.dropdownItem} onPress={() => { setShowDropdown(false); navigation.navigate('CreateThread'); }}>
                   <MaterialIcons name="forum" size={22} color="#222" style={{ marginRight: 10 }} />
                   <Text>Thread</Text>
                 </TouchableOpacity>
