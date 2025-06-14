@@ -38,7 +38,7 @@ const HomeScreen = ({ navigation }) => {
                   <MaterialIcons name="post-add" size={22} color="#222" style={{ marginRight: 10 }} />
                   <Text>Post</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.dropdownItem}>
+                <TouchableOpacity style={styles.dropdownItem} onPress={() => { setShowDropdown(false); navigation.navigate('CreateItinerary'); }}>
                   <MaterialIcons name="event-note" size={22} color="#222" style={{ marginRight: 10 }} />
                   <Text>Itinerary</Text>
                 </TouchableOpacity>

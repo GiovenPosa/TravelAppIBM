@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, ScrollView, Platform, StatusBar as RNStatusBar } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, ScrollView, Platform, StatusBar as RNStatusBar, Modal, FlatList } from 'react-native';
 import { Ionicons, MaterialIcons, FontAwesome } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { decode as atob } from 'base-64';
@@ -8,9 +8,13 @@ import { API_BASE_URL } from '../config';
 const CreateThreadScreen = ({ navigation }) => {
   const [content, setContent] = useState('');
   const [username, setUsername] = useState('');
+  const [followings, setFollowings] = useState([]); // List of users current user follows
+  const [taggedUsers, setTaggedUsers] = useState([]); // Selected users to tag
+  const [modalVisible, setModalVisible] = useState(false);
+  const [search, setSearch] = useState(''); // For search bar in modal
 
   React.useEffect(() => {
-    const fetchUsername = async () => {
+    const fetchUsernameAndFollowings = async () => {
       try {
         const token = await AsyncStorage.getItem('token');
         if (token) {
@@ -36,6 +40,14 @@ const CreateThreadScreen = ({ navigation }) => {
             } else {
               setUsername('User');
             }
+            // Fetch followings for tag modal
+            const profileRes = await fetch(`${API_BASE_URL}/api/users/profile`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            const profileData = await profileRes.json();
+            if (profileRes.ok && profileData.user && Array.isArray(profileData.user.followings)) {
+              setFollowings(profileData.user.followings);
+            }
           } catch (decodeErr) {
             console.log('Error decoding JWT or fetching user:', decodeErr);
             setUsername('User');
@@ -46,7 +58,7 @@ const CreateThreadScreen = ({ navigation }) => {
         setUsername('User');
       }
     };
-    fetchUsername();
+    fetchUsernameAndFollowings();
   }, []);
 
   const handlePostSubmit = async () => {
@@ -60,13 +72,15 @@ const CreateThreadScreen = ({ navigation }) => {
         alert('You are not logged in.');
         return;
       }
+      // Prepare tagged user objects for display and send their IDs to backend
+      const taggedUserObjects = followings.filter(u => taggedUsers.includes(u._id));
       const response = await fetch(`${API_BASE_URL}/api/posts`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ content })
+        body: JSON.stringify({ content, taggedUsers: taggedUserObjects.map(u => u._id) })
       });
       const data = await response.json();
       if (!response.ok) {
@@ -75,12 +89,40 @@ const CreateThreadScreen = ({ navigation }) => {
       } else {
         alert('Post created!');
         setContent('');
+        setTaggedUsers([]);
         navigation.goBack();
       }
     } catch (error) {
       console.error('Submit error:', error);
       alert('Failed to create post');
     }
+  };
+
+  const toggleTagUser = (userId) => {
+    setTaggedUsers((prev) =>
+      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+    );
+  };
+
+  // Filtered followings for search
+  const filteredFollowings = followings.filter(u => {
+    const fullName = `${u.firstName} ${u.lastName}`.toLowerCase();
+    return fullName.includes(search.toLowerCase());
+  });
+
+  // Helper for avatar (show image if available, else initials or icon)
+  const renderAvatar = (user) => {
+    if (user.profilePicture) {
+      return (
+        <Image source={{ uri: user.profilePicture }} style={styles.avatarImg} />
+      );
+    }
+    const initials = (user.firstName?.[0] || '') + (user.lastName?.[0] || '');
+    return (
+      <View style={styles.avatarCircle}>
+        <Text style={styles.avatarInitials}>{initials || <Ionicons name="person" size={20} color="#fff" />}</Text>
+      </View>
+    );
   };
 
   return (
@@ -113,9 +155,21 @@ const CreateThreadScreen = ({ navigation }) => {
         multiline
       />
 
+      {/* Show tagged users */}
+      {taggedUsers.length > 0 && (
+        <View style={styles.taggedUsersRow}>
+          <Text style={styles.taggedLabel}>Tagged: </Text>
+          {followings.filter(u => taggedUsers.includes(u._id)).map(u => (
+            <View key={u._id} style={styles.tagPill}>
+              <Text style={styles.tagPillText}>{u.firstName} {u.lastName}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+
       {/* Options */}
       <ScrollView style={styles.optionsList}>
-        <TouchableOpacity style={styles.optionRow}>
+        <TouchableOpacity style={styles.optionRow} onPress={() => setModalVisible(true)}>
           <MaterialIcons name="person-add" size={24} color="#1877f2" style={{ marginRight: 12 }} />
           <Text style={styles.optionText}>Tag people</Text>
         </TouchableOpacity>
@@ -128,6 +182,58 @@ const CreateThreadScreen = ({ navigation }) => {
           <Text style={styles.optionText}>Bind Itinerary</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Tag People Modal */}
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Tag people</Text>
+            {/* Search Bar */}
+            <View style={styles.searchBarContainer}>
+              <Ionicons name="search" size={20} color="#888" style={{ marginLeft: 8 }} />
+              <TextInput
+                style={styles.searchBar}
+                placeholder="Search"
+                value={search}
+                onChangeText={setSearch}
+                placeholderTextColor="#aaa"
+              />
+            </View>
+            <Text style={styles.suggestionsLabel}>Suggestions</Text>
+            <FlatList
+              data={filteredFollowings}
+              keyExtractor={item => item._id}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.modalUserRow}
+                  onPress={() => toggleTagUser(item._id)}
+                  activeOpacity={0.7}
+                >
+                  {renderAvatar(item)}
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={styles.modalUserName}>{item.firstName} {item.lastName}</Text>
+                    {/* Optionally show friend/mutual info if available: <Text style={styles.mutualInfo}>Friend · 17 mutual friends</Text> */}
+                  </View>
+                  <View style={styles.checkboxBox}>
+                    <View style={[styles.checkbox, taggedUsers.includes(item._id) && styles.checkboxChecked]}>
+                      {taggedUsers.includes(item._id) && <Ionicons name="checkmark" size={16} color="#fff" />}
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={<Text style={{ textAlign: 'center', marginTop: 20 }}>You are not following anyone yet.</Text>}
+            />
+            <TouchableOpacity style={styles.modalCloseButton} onPress={() => setModalVisible(false)}>
+              <Text style={styles.modalCloseButtonText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -145,6 +251,25 @@ const styles = StyleSheet.create({
   optionsList: { borderTopWidth: 1, borderColor: '#eee', marginTop: 8 },
   optionRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 16, paddingHorizontal: 20, borderBottomWidth: 1, borderColor: '#f0f0f0' },
   optionText: { fontSize: 16 },
+  taggedUsersRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 4, flexWrap: 'wrap' },
+  taggedLabel: { fontWeight: 'bold', marginRight: 6 },
+  tagPill: { backgroundColor: '#e3f2fd', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, marginRight: 6, marginBottom: 4 },
+  tagPillText: { color: '#1976d2', fontWeight: 'bold' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' },
+  modalContent: { backgroundColor: '#fff', borderRadius: 16, padding: 20, width: '85%', maxHeight: '70%' },
+  modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 16, textAlign: 'center' },
+  modalUserRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 2 },
+  avatarImg: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#eee' },
+  avatarCircle: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#bbb', justifyContent: 'center', alignItems: 'center' },
+  avatarInitials: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  checkboxBox: { marginLeft: 8 },
+  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: '#bbb', backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' },
+  checkboxChecked: { backgroundColor: '#007bff', borderColor: '#007bff' },
+  searchBarContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f3f3f3', borderRadius: 10, marginBottom: 8, paddingHorizontal: 4 },
+  searchBar: { flex: 1, height: 38, fontSize: 16, paddingHorizontal: 8, backgroundColor: 'transparent', color: '#222' },
+  suggestionsLabel: { fontWeight: 'bold', fontSize: 15, marginBottom: 4, marginTop: 8 },
+  modalCloseButton: { backgroundColor: '#007bff', borderRadius: 8, padding: 10, marginTop: 16, alignItems: 'center' },
+  modalCloseButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
 });
 
 export default CreateThreadScreen;

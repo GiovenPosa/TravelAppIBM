@@ -57,6 +57,7 @@ export default function App() {
         <Stack.Screen name="UserProfile" component={UserProfileScreen} />
         <Stack.Screen name="Chat" component={ChatScreen} />
         <Stack.Screen name="CreateThread" component={CreateThreadScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="CreateItinerary" component={require('./screens/CreateItineraryScreen').default} options={{ headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>
   );
