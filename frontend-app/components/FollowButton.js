@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Alert } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../config';
 
@@ -22,6 +22,7 @@ const FollowButton = ({ userId, isFollowingInitially, onFollowToggle }) => {
       const data = await response.json();
 
       if (response.ok) {
+        const newState = !isFollowing;
         setIsFollowing(!isFollowing);
         onFollowToggle?.(!isFollowing); // Notify parent if needed
       } else {
@@ -37,12 +38,39 @@ const FollowButton = ({ userId, isFollowingInitially, onFollowToggle }) => {
   };
 
   return (
-    <Button
-      title={isFollowing ? "Unfollow" : "Follow"}
+    <TouchableOpacity
+      style={[styles.button, isFollowing ? styles.unfollow : styles.follow]}
       onPress={handleToggleFollow}
       disabled={loading}
-    />
+    >
+      {loading ? (
+        <ActivityIndicator color="#fff" />
+      ) : (
+        <Text style={styles.buttonText}>{isFollowing ? 'Unfollow' : 'Follow'}</Text>
+      )}
+    </TouchableOpacity>
   );
 };
+
+const styles = StyleSheet.create({
+  button: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  follow: {
+    backgroundColor: '#007bff',
+  },
+  unfollow: {
+    backgroundColor: '#999',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+});
 
 export default FollowButton;
